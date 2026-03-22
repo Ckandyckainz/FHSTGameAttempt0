@@ -11,6 +11,7 @@ let yourStoneSpeed = 10;
 
 let yourVelocity = [0, 0];
 let yourPos = [200, 200];
+let enemyVelocity = [0, 0];
 let enemyPos = [500, 200];
 let keysDown = [];
 
@@ -303,7 +304,7 @@ let cHemlock = new Cat(3, "Hemlock", [0.5, 0.5, 0.5], [0.4, 0.3, 0.2], [0, 0.9, 
 
 let playerStones = [];
 for (let i=0; i<9; i++) {
-    playerStones.push({x: 200, y: 200, angle: 0, targetX: undefined, targetY: undefined});
+    playerStones.push({x: 200, y: 200, angle: 0, targetX: undefined, targetY: undefined, angleVelocity: 0});
 }
 let playerStoneGroupSize = 3;
 let playerStoneGroupNestLayers = 2;
@@ -404,19 +405,38 @@ function animationLoop(){
     for (i=0; i<2; i++) {
       yourVelocity[i] = boundValue(yourVelocity[i], yourMaxSpeed*-1, yourMaxSpeed)*frictionModifier;
       yourPos[i] += yourVelocity[i];
+      yourPos[i] = boundValue(yourPos[i], 40, mcan.height-40);
+      enemyVelocity[i] = boundValue(enemyVelocity[i], yourMaxSpeed*-1, yourMaxSpeed)*frictionModifier;
+      enemyPos[i] += enemyVelocity[i];
+      enemyPos[i] = boundValue(enemyPos[i], 40, mcan.height-40);
     }
     for (let i=0; i<playerStones.length; i++) {
+      let psi = playerStones[i];
         if (playerStones[i].targetX != undefined) {
-            let psi = playerStones[i];
             let targetAngle = Math.atan2(psi.targetY-psi.y, psi.targetX-psi.x);
             if (psi.angle-targetAngle > Math.PI) {
               targetAngle += Math.PI*2;
             } else if (targetAngle-psi.angle > Math.PI) {
               targetAngle -= Math.PI*2;
             }
-            playerStones[i].angle += (targetAngle-psi.angle)/10;
+            let angleChangeBy = (targetAngle-psi.angle)/10;
+            playerStones[i].angleVelocity += boundValue(angleChangeBy, -0.01, 0.01);
+            playerStones[i].angleVelocity = boundValue(psi.angleVelocity, -0.1, 0.1);
+            playerStones[i].angle += psi.angleVelocity;
             playerStones[i].x += Math.cos(psi.angle)*yourStoneSpeed;
             playerStones[i].y += Math.sin(psi.angle)*yourStoneSpeed;
+        }
+        if (psi.x < enemyPos[0] && Math.abs(enemyPos[0]-psi.x) < 100) {
+          enemyVelocity[0] += yourMaxSpeed/9;
+        }
+        if (psi.y < enemyPos[0] && Math.abs(enemyPos[1]-psi.y) < 100) {
+          enemyVelocity[1] += yourMaxSpeed/9;
+        }
+        if (psi.x > enemyPos[0] && Math.abs(enemyPos[0]-psi.x) < 100) {
+          enemyVelocity[0] -= yourMaxSpeed/9;
+        }
+        if (psi.y > enemyPos[0] && Math.abs(enemyPos[1]-psi.y) < 100) {
+          enemyVelocity[1] -= yourMaxSpeed/9;
         }
     }
     mctx.fillStyle = "white";
