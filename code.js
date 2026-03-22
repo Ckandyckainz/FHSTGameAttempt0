@@ -293,8 +293,14 @@ function v(value){
   }
 }
 
-function drawCatFace(ctx, cw, cat, x, y, name, r){
-    let face = new CatHeadFront(cat, x/cw, y/cw, r, 0, 0, 0.1, 0, 0, 0, 1, 1, 0, 0, 1, 1, [0, 0, 0, 0], 0, 0, 0);
+function drawCatFace(ctx, cw, cat, x, y, name, r, lookAtMouse){
+    let pupilsX = 0;
+    let pupilsY = 0;
+    if (lookAtMouse) {
+      pupilsX = (mousePos.x-x)/mcan.height;
+      pupilsY = (mousePos.y-y)/mcan.height;
+    }
+    let face = new CatHeadFront(cat, x/cw, y/cw, r, 0, 0, 0.1, 0, 0, 0, 1, 1, pupilsX, pupilsY, 1, 1, [0, 0, 0, 0], 0, 0, 0);
     face.drawSelf(ctx, cw);
 }
 
@@ -441,8 +447,8 @@ function animationLoop(){
     }
     mctx.fillStyle = "white";
     mctx.fillRect(0, 0, mcan.width, mcan.height);
-    drawCatFace(mctx, mcan.width, cFlame, ...yourPos, "You", 0.03);
-    drawCatFace(mctx, mcan.width, cHemlock, ...enemyPos, "Enemy", 0.03);
+    drawCatFace(mctx, mcan.width, cFlame, ...yourPos, "You", 0.03, true);
+    drawCatFace(mctx, mcan.width, cHemlock, ...enemyPos, "Enemy", 0.03, false);
     for (let i=0; i<playerStones.length; i++) {
         drawStone(mctx, playerStones[i], 20, 10);
     }
