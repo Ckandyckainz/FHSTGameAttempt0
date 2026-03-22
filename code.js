@@ -3,6 +3,7 @@
 let mcan = document.getElementById("mcan");
 mcan.width = window.innerWidth;
 mcan.height = window.innerHeight;
+let mcanWH = [mcan.width, mcan.height];
 let mctx = mcan.getContext("2d");
 let frictionModifier = 0.9;
 
@@ -20,6 +21,7 @@ let keysDown = [];
 
 class CatWithStones{
   constructor(cat, x, y){
+    this.health = 100;
     this.cat = cat;
     this.pos = [x, y];
     this.vel = [0, 0]; // velocity
@@ -428,10 +430,10 @@ function animationLoop(){
     for (i=0; i<2; i++) {
       player.vel[i] = boundValue(player.vel[i], player.maxVel*-1, player.maxVel)*frictionModifier;
       player.pos[i] += player.vel[i];
-      player.pos[i] = boundValue(player.pos[i], 40, mcan.height-40);
+      player.pos[i] = boundValue(player.pos[i], 40, mcanWH[i]-40);
       enemy.vel[i] = boundValue(enemy.vel[i], enemy.maxVel*-1, enemy.maxVel)*frictionModifier;
       enemy.pos[i] += enemy.vel[i];
-      enemy.pos[i] = boundValue(enemy.pos[i], 40, mcan.height-40);
+      enemy.pos[i] = boundValue(enemy.pos[i], 40, mcanWH[i]-40);
     }
     for (let i=0; i<catsWithStones.length; i++) {
       let stones = catsWithStones[i].stones;
@@ -473,6 +475,18 @@ function animationLoop(){
       enemy.stones[stoneIndex].targetX = player.pos[0];
       enemy.stones[stoneIndex].targetY = player.pos[1];
     }
+    for (let i=0; i<enemy.stones.length; i++) {
+      let stone = enemy.stones[i];
+      if ((player.pos[0]-stone.x+player.pos[1]-stone.y)**2 < 900) {
+        player.health -= 0.2;
+      }
+    }
+    for (let i=0; i<player.stones.length; i++) {
+      let stone = player.stones[i];
+      if ((enemy.pos[0]-stone.x+enemy.pos[1]-stone.y)**2 < 900) {
+        enemy.health -= 0.2;
+      }
+    }
     mctx.fillStyle = "#404040";
     mctx.fillRect(0, 0, mcan.width, mcan.height);
     for (let i=0; i<catsWithStones.length; i++) {
@@ -485,10 +499,19 @@ function animationLoop(){
         drawStone(mctx, stones[j], 20, 10);
       }
     }
+    mctx.fillStyle = "black";
+    mctx.fillRect(mcan.width*0.9, mcan.height*0.01, mcan.width*0.09, mcan.height*0.01);
+    mctx.fillRect(mcan.width*0.9, mcan.height*0.03, mcan.width*0.09, mcan.height*0.01);
+    mctx.fillStyle = "blue";
+    mctx.fillRect(mcan.width*0.9, mcan.height*0.01, mcan.width*0.09*player.health/100, mcan.height*0.01);
+    mctx.fillStyle = "green";
+    mctx.fillRect(mcan.width*0.9, mcan.height*0.03, mcan.width*0.09*enemy.health/100, mcan.height*0.01);
     timeSinceLastPlayerStoneGroupNumberSet ++;
     if (timeSinceLastPlayerStoneGroupNumberSet > playerStoneGroupNumberTimeout) {
         playerStoneGroupNumber = "";
     }
-    requestAnimationFrame(animationLoop);
+    if (player.health > 0 && enemy.health > 0) {
+      requestAnimationFrame(animationLoop);
+    }
 }
 animationLoop();
