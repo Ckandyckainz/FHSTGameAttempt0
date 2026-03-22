@@ -366,6 +366,13 @@ document.addEventListener("keypress", (event)=>{
     } else if (event.key >= 1 && event.key <= player.stoneGroupSize && playerStoneGroupNumber.length < player.stoneGroupNestLayers) {
         playerStoneGroupNumber += ""+event.key-1;
         timeSinceLastPlayerStoneGroupNumberSet = 0;
+    } else if (event.key == player.stoneGroupSize+1) {
+      for (let i=0; i<player.stones.length; i++) {
+        if (player.stones[i].targetX != undefined) {
+          player.stones[i].targetX += Math.random()*10-20;
+          player.stones[i].targetY += Math.random()*10-20;
+        }
+      }
     }
 });
 
