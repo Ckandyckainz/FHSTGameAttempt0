@@ -5,6 +5,9 @@ mcan.width = window.innerWidth;
 mcan.height = window.innerHeight;
 let mctx = mcan.getContext("2d");
 let frictionModifier = 0.9;
+
+let catsWithStones = [];
+
 let yourAcceleration = 1;
 let yourMaxSpeed = 10;
 let yourStoneSpeed = 10;
@@ -14,6 +17,23 @@ let yourPos = [200, 200];
 let enemyVelocity = [0, 0];
 let enemyPos = [500, 200];
 let keysDown = [];
+
+class CatWithStones{
+  constructor(cat, x, y){
+    this.cat = cat;
+    this.pos = [x, y];
+    this.vel = [0, 0]; // velocity
+    this.maxVel = 10;
+    this.accel = 1; // acceleration
+    this.stones = [];
+    for (let i=0; i<9; i++) {
+      this.stones.push({x: x, y: y, angle: 0, targetX: undefined, targetY: undefined, angleVelocity: 0, color: colorString(...cat.ec, 1)});
+    }
+    this.stoneGroupSize = 3;
+    this.stoneGroupNestLayers = 2;
+    catsWithStones.push(this);
+  }
+}
 
 class Cat{
 	constructor(id, name, mc, lc, ec, ec2, nc, cc, clc, tlknc, tfts1, tfts1l, tfts1s, tfts2, tfts2l, tfts2s, tftsSag, earAngle, earWidth, earLength, stripes, patches, mouthColoring, pawColoring, scars, textColor, textOutlineColor){
@@ -308,12 +328,9 @@ let cFlame = new Cat(0, "Flame", [0.1, 0.1, 0.1], [0.4, 0.2, 0], [0, 0, 1], [0, 
 
 let cHemlock = new Cat(3, "Hemlock", [0.5, 0.5, 0.5], [0.4, 0.3, 0.2], [0, 0.9, 0.4], [0, 0.8, 0.6], [0.4, 0.2, 0], [1, 1, 1], [0.6, 0.6, 0.6], [0, 1, 1], 9, 1.3, 0.75, 3, 0.8, 0.6, -0.1, Math.PI*0.21, Math.PI*0.15, 1.5, {type: "N", c: [1, 0.6, 0], lsn: 3, lsw: 0.1}, {c: [1, 1, 1], ids: [2, 6], ir: 0.8, legPatchCount: 3, w1: 0.4, w2: 0.2, lpl: 0.6}, true, true, [], [1, 0.85, 0.7], [0, 0, 0.3]);
 
-let playerStones = [];
-for (let i=0; i<9; i++) {
-    playerStones.push({x: 200, y: 200, angle: 0, targetX: undefined, targetY: undefined, angleVelocity: 0});
-}
-let playerStoneGroupSize = 3;
-let playerStoneGroupNestLayers = 2;
+let player = new CatWithStones(cFlame, 200, 200);
+let enemy = new CatWithStones(cHemlock, 700, 200);
+
 let mousePos = {x: 200, y: 200};
 let playerStoneGroupNumber = "";
 let timeSinceLastPlayerStoneGroupNumberSet = 0;
@@ -326,25 +343,25 @@ mcan.addEventListener("mousemove", (event)=>{
 
 mcan.addEventListener("click", ()=>{
     let startIndex = 0;
-    let endIndex = playerStones.length;
+    let endIndex = player.stones.length;
     if (playerStoneGroupNumber.length == 1) {
-        startIndex = playerStoneGroupNumber[0]*playerStoneGroupSize;
-        endIndex = (playerStoneGroupNumber[0]*1+1)*playerStoneGroupSize;
+        startIndex = playerStoneGroupNumber[0]*player.stoneGroupSize;
+        endIndex = (playerStoneGroupNumber[0]*1+1)*player.stoneGroupSize;
     } else if (playerStoneGroupNumber.length == 2) {
-        startIndex = playerStoneGroupNumber[0]*playerStoneGroupSize+1*playerStoneGroupNumber[1];
+        startIndex = playerStoneGroupNumber[0]*player.stoneGroupSize+1*playerStoneGroupNumber[1];
         endIndex = startIndex+1;
     }
     for (let i=startIndex; i<endIndex; i++) {
-        let psi = playerStones[i];
-        playerStones[i].targetX = mousePos.x;
-        playerStones[i].targetY = mousePos.y;
+        let psi = player.stones[i];
+        player.stones[i].targetX = mousePos.x;
+        player.stones[i].targetY = mousePos.y;
     }
 });
 
 document.addEventListener("keypress", (event)=>{
     if (event.key == " ") {
         playerStoneGroupNumber = "";
-    } else if (event.key >= 1 && event.key <= playerStoneGroupSize && playerStoneGroupNumber.length < playerStoneGroupNestLayers) {
+    } else if (event.key >= 1 && event.key <= player.stoneGroupSize && playerStoneGroupNumber.length < player.stoneGroupNestLayers) {
         playerStoneGroupNumber += ""+event.key-1;
         timeSinceLastPlayerStoneGroupNumberSet = 0;
     }
@@ -377,7 +394,7 @@ function drawStone(ctx, stone, length, width) {
     let y = stone.y;
     let angle = stone.angle;
     ctx.beginPath();
-    ctx.fillStyle = "gray";
+    ctx.fillStyle = stone.color;
     ctx.moveTo(x+Math.cos(angle)*length, y+Math.sin(angle)*length);
     ctx.lineTo(x+Math.cos(angle+Math.PI/2)*width, y+Math.sin(angle+Math.PI/2)*width);
     ctx.lineTo(x+Math.cos(angle+Math.PI)*length, y+Math.sin(angle+Math.PI)*length);
@@ -399,58 +416,74 @@ function animationLoop(){
     for (let i=0; i<keysDown.length; i++) {
       let keyDown = keysDown[i];
       if (keyDown == "w") {
-        yourVelocity[1] -= yourAcceleration;
+        player.vel[1] -= player.maxVel;
       } else if (keyDown == "a") {
-        yourVelocity[0] -= yourAcceleration;
+        player.vel[0] -= player.maxVel;
       } else if (keyDown == "s") {
-        yourVelocity[1] += yourAcceleration;
+        player.vel[1] += player.maxVel;
       } else if (keyDown == "d") {
-        yourVelocity[0] += yourAcceleration;
+        player.vel[0] += player.maxVel;
       }
     }
     for (i=0; i<2; i++) {
-      yourVelocity[i] = boundValue(yourVelocity[i], yourMaxSpeed*-1, yourMaxSpeed)*frictionModifier;
-      yourPos[i] += yourVelocity[i];
-      yourPos[i] = boundValue(yourPos[i], 40, mcan.height-40);
-      enemyVelocity[i] = boundValue(enemyVelocity[i], yourMaxSpeed*-1, yourMaxSpeed)*frictionModifier;
-      enemyPos[i] += enemyVelocity[i];
-      enemyPos[i] = boundValue(enemyPos[i], 40, mcan.height-40);
+      player.vel[i] = boundValue(player.vel[i], player.maxVel*-1, player.maxVel)*frictionModifier;
+      player.pos[i] += player.vel[i];
+      player.pos[i] = boundValue(player.pos[i], 40, mcan.height-40);
+      enemy.vel[i] = boundValue(enemy.vel[i], enemy.maxVel*-1, enemy.maxVel)*frictionModifier;
+      enemy.pos[i] += enemy.vel[i];
+      enemy.pos[i] = boundValue(enemy.pos[i], 40, mcan.height-40);
     }
-    for (let i=0; i<playerStones.length; i++) {
-      let psi = playerStones[i];
-        if (playerStones[i].targetX != undefined) {
-            let targetAngle = Math.atan2(psi.targetY-psi.y, psi.targetX-psi.x);
-            if (psi.angle-targetAngle > Math.PI) {
+    for (let i=0; i<catsWithStones.length; i++) {
+      let stones = catsWithStones[i].stones;
+      for (let j=0; j<stones.length; j++) {
+        let stone = stones[j];
+        if (stone.targetX != undefined) {
+            let targetAngle = Math.atan2(stone.targetY-stone.y, stone.targetX-stone.x);
+            if (stone.angle-targetAngle > Math.PI) {
               targetAngle += Math.PI*2;
-            } else if (targetAngle-psi.angle > Math.PI) {
+            } else if (targetAngle-stone.angle > Math.PI) {
               targetAngle -= Math.PI*2;
             }
-            let angleChangeBy = (targetAngle-psi.angle)/10;
-            playerStones[i].angleVelocity += boundValue(angleChangeBy, -0.01, 0.01);
-            playerStones[i].angleVelocity = boundValue(psi.angleVelocity, -0.1, 0.1);
-            playerStones[i].angle += psi.angleVelocity;
-            playerStones[i].x += Math.cos(psi.angle)*yourStoneSpeed;
-            playerStones[i].y += Math.sin(psi.angle)*yourStoneSpeed;
+            let angleChangeBy = (targetAngle-stone.angle)/10;
+            stones[j].angleVelocity += boundValue(angleChangeBy, -0.01, 0.01);
+            stones[j].angleVelocity = boundValue(stone.angleVelocity, -0.1, 0.1);
+            stones[j].angle += stone.angleVelocity;
+            stones[j].x += Math.cos(stone.angle)*yourStoneSpeed;
+            stones[j].y += Math.sin(stone.angle)*yourStoneSpeed;
         }
-        if (psi.x < enemyPos[0] && Math.abs(enemyPos[0]-psi.x) < 100) {
-          enemyVelocity[0] += yourMaxSpeed/9;
+      }
+    }
+    for (let i=0; i<player.stones.length; i++) {
+      let psi = player.stones[i];
+        if (psi.x < enemy.pos[0] && Math.abs(enemy.pos[0]-psi.x) < 100) {
+          enemy.vel[0] += enemy.maxVel/9;
         }
-        if (psi.y < enemyPos[0] && Math.abs(enemyPos[1]-psi.y) < 100) {
-          enemyVelocity[1] += yourMaxSpeed/9;
+        if (psi.y < enemy.pos[0] && Math.abs(enemy.pos[1]-psi.y) < 100) {
+          enemy.vel[1] += enemy.maxVel/9;
         }
-        if (psi.x > enemyPos[0] && Math.abs(enemyPos[0]-psi.x) < 100) {
-          enemyVelocity[0] -= yourMaxSpeed/9;
+        if (psi.x > enemy.pos[0] && Math.abs(enemy.pos[0]-psi.x) < 100) {
+          enemy.vel[0] -= enemy.maxVel/9;
         }
-        if (psi.y > enemyPos[0] && Math.abs(enemyPos[1]-psi.y) < 100) {
-          enemyVelocity[1] -= yourMaxSpeed/9;
+        if (psi.y > enemy.pos[0] && Math.abs(enemy.pos[1]-psi.y) < 100) {
+          enemy.vel[1] -= enemy.maxVel/9;
         }
     }
-    mctx.fillStyle = "white";
+    if (Math.random() < 0.1) {
+      let stoneIndex = Math.floor(Math.random()*enemy.stones.length);
+      enemy.stones[stoneIndex].targetX = player.pos[0];
+      enemy.stones[stoneIndex].targetY = player.pos[1];
+    }
+    mctx.fillStyle = "#404040";
     mctx.fillRect(0, 0, mcan.width, mcan.height);
-    drawCatFace(mctx, mcan.width, cFlame, ...yourPos, "You", 0.03, true);
-    drawCatFace(mctx, mcan.width, cHemlock, ...enemyPos, "Enemy", 0.03, false);
-    for (let i=0; i<playerStones.length; i++) {
-        drawStone(mctx, playerStones[i], 20, 10);
+    for (let i=0; i<catsWithStones.length; i++) {
+      let cat = catsWithStones[i];
+      drawCatFace(mctx, mcan.width, cat.cat, ...cat.pos, "", 0.03, true);
+    }
+    for (let i=0; i<catsWithStones.length; i++) {
+      let stones = catsWithStones[i].stones;
+      for (let j=0; j<stones.length; j++) {
+        drawStone(mctx, stones[j], 20, 10);
+      }
     }
     timeSinceLastPlayerStoneGroupNumberSet ++;
     if (timeSinceLastPlayerStoneGroupNumberSet > playerStoneGroupNumberTimeout) {
