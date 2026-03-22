@@ -300,7 +300,7 @@ function drawCatFace(ctx, cw, cat, x, y, name, r, lookAtMouse){
       pupilsX = (mousePos.x-x)/mcan.height;
       pupilsY = (mousePos.y-y)/mcan.height;
     }
-    let face = new CatHeadFront(cat, x/cw, y/cw, r, 0, 0, 0.1, 0, 0, 0, 1, 1, pupilsX, pupilsY, 1, 1, [0, 0, 0, 0], 0, 0, 0);
+    let face = new CatHeadFront(cat, x/cw, y/cw, r, pupilsX/2, pupilsY/2+0.1, 0.1, 0, 0, 0, 1, 1, pupilsX, pupilsY, 1, 1, [0, 0, 0, 0], 0, 0, 0);
     face.drawSelf(ctx, cw);
 }
 
